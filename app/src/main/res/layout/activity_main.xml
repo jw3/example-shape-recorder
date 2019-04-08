@@ -7,6 +7,20 @@
         android:layout_height="match_parent"
         tools:context=".MainActivity">
 
+    <ToggleButton
+            android:text="ToggleButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:id="@+id/toggleButton"
+            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toTopOf="@+id/mapView" app:layout_constraintStart_toStartOf="@+id/mapView"
+            android:layout_marginStart="8dp" android:textOff="Rec" android:textOn="Save"/>
+    <Button
+            android:text="Cancel"
+            android:layout_width="88dp"
+            android:layout_height="wrap_content" android:id="@+id/cancelButton"
+            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toTopOf="@+id/mapView" app:layout_constraintStart_toEndOf="@+id/toggleButton"
+            android:layout_marginStart="8dp" android:visibility="invisible"/>
     <com.esri.arcgisruntime.mapping.view.MapView
             android:id="@+id/mapView"
             android:layout_width="match_parent"
