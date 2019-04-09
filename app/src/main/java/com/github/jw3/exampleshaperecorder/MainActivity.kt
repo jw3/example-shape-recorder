@@ -3,26 +3,19 @@ package com.github.jw3.exampleshaperecorder
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import com.esri.arcgisruntime.geometry.GeometryEngine
-import com.esri.arcgisruntime.geometry.PointCollection
-import com.esri.arcgisruntime.geometry.SpatialReferences
+import com.esri.arcgisruntime.geometry.*
 import com.esri.arcgisruntime.mapping.ArcGISMap
 import com.esri.arcgisruntime.mapping.Basemap
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
-    private val LocationPermissionRequest = 111
-
-    val PinDist = 5 // meters
-    val SR = SpatialReferences.getWgs84()
-    val emptyPtc = PointCollection(SR)
     var track = emptyPtc
     var course = 0.0
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,34 +23,54 @@ class MainActivity : AppCompatActivity() {
 
         askGpsPermission()
 
-        mapView.map = ArcGISMap(Basemap.Type.IMAGERY, 34.056295, -117.195800, 16)
+        mapView.map = ArcGISMap(Basemap.Type.IMAGERY, 0.0, 0.0, 4)
 
+        mapView.locationDisplay.startAsync()
         mapView.locationDisplay.addLocationChangedListener { e ->
-            if (e.location.position != null) when {
-                track.isEmpty() ->
-                    track.add(e.location.position)
-                course != e.location.course -> {
-                    course = e.location.course
-                    track.add(e.location.position)
+            e.location.position?.apply {
+                if (track.isNotEmpty()) when {
+                    course != e.location.course -> {
+                        course = e.location.course
+                        track.add(this)
+                    }
+                    track.last() != e.location.position -> {
+                        val geo = GeometryEngine.distanceGeodetic(
+                            this,
+                            track.last(),
+                            LinearUnitMeters,
+                            AngularUnitMeters,
+                            GeodeticCurveType.GEODESIC
+                        )
+
+                        Log.d(TAG, "moved ${geo.distance} ${geo.distanceUnit.displayName}")
+                        if (geo.distance > PinDist)
+                            track.add(this)
+                    }
                 }
-                GeometryEngine.distanceBetween(e.location.position, track.last()) > PinDist ->
-                    track.add(e.location.position)
             }
         }
 
         toggleButton.setOnCheckedChangeListener { _, starting ->
             cancelButton.isVisible = starting
-            println("toggle $starting")
 
-            if (!starting) when (track) {
+            if (starting) {
+                track = PointCollection(SR)
+                track.add(mapView.locationDisplay.location.position)
+            } else when (track) {
                 emptyPtc ->
-                    println("no points")
-                else ->
-                    println("saving points")
+                    Log.d(TAG, "no points recorded")
+                else -> {
+                    val b = PolygonBuilder(track)
+                    val g = b.toGeometry()
+                    Log.d(TAG, "saving polygon: ${g.toJson()}")
+
+                    val a = GeometryEngine.areaGeodetic(g, AreaUnitAcres, GeodeticCurveType.GEODESIC)
+                    Log.d(TAG, "Acres: $a")
+                }
             }
         }
         cancelButton.setOnClickListener {
-            println("cancel")
+            Log.d(TAG, "cancel recording")
             track = emptyPtc
             toggleButton.isChecked = false
             cancelButton.isVisible = false
@@ -75,5 +88,16 @@ class MainActivity : AppCompatActivity() {
                 LocationPermissionRequest
             )
         }
+    }
+
+    companion object {
+        private const val TAG = "MainActivity"
+        private const val LocationPermissionRequest = 111
+        private val LinearUnitMeters = LinearUnit(LinearUnitId.METERS)
+        private val AngularUnitMeters = AngularUnit(AngularUnitId.DEGREES)
+        private val AreaUnitAcres = AreaUnit(AreaUnitId.ACRES)
+        val PinDist = 5 // meters
+        val SR = SpatialReferences.getWgs84()
+        val emptyPtc = PointCollection(SR)
     }
 }
