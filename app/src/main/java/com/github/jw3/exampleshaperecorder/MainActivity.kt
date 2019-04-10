@@ -11,11 +11,17 @@ import androidx.core.view.isVisible
 import com.esri.arcgisruntime.geometry.*
 import com.esri.arcgisruntime.mapping.ArcGISMap
 import com.esri.arcgisruntime.mapping.Basemap
+import com.esri.arcgisruntime.mapping.view.Graphic
+import com.esri.arcgisruntime.mapping.view.GraphicsOverlay
+import com.esri.arcgisruntime.symbology.SimpleLineSymbol
+import com.esri.arcgisruntime.symbology.SimpleMarkerSymbol
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
-    var track = emptyPtc
     var course = 0.0
+    var track = emptyPtc
+
+    var trackG: Graphic? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,6 +31,10 @@ class MainActivity : AppCompatActivity() {
 
         mapView.map = ArcGISMap(Basemap.Type.IMAGERY, 0.0, 0.0, 4)
 
+        val prevTracks = GraphicsOverlay()
+        val currTracks = GraphicsOverlay()
+        mapView.graphicsOverlays.addAll(listOf(prevTracks, currTracks))
+
         mapView.locationDisplay.startAsync()
         mapView.locationDisplay.addLocationChangedListener { e ->
             e.location.position?.apply {
@@ -32,6 +42,7 @@ class MainActivity : AppCompatActivity() {
                     course != e.location.course -> {
                         course = e.location.course
                         track.add(this)
+                        trackG?.geometry = Polyline(track)
                     }
                     track.last() != e.location.position -> {
                         val geo = GeometryEngine.distanceGeodetic(
@@ -43,8 +54,10 @@ class MainActivity : AppCompatActivity() {
                         )
 
                         Log.d(TAG, "moved ${geo.distance} ${geo.distanceUnit.displayName}")
-                        if (geo.distance > PinDist)
+                        if (geo.distance > PinDist){
                             track.add(this)
+                            trackG?.geometry = Polyline(track)
+                        }
                     }
                 }
             }
@@ -56,9 +69,15 @@ class MainActivity : AppCompatActivity() {
             if (starting) {
                 track = PointCollection(SR)
                 track.add(mapView.locationDisplay.location.position)
+
+                trackG = Graphic(Polyline(track), trackMarker)
+                currTracks.graphics.add(trackG)
             } else when (track) {
-                emptyPtc ->
+                emptyPtc ->{
                     Log.d(TAG, "no points recorded")
+                    currTracks.graphics.clear()
+                    trackG = null
+                }
                 else -> {
                     val b = PolygonBuilder(track)
                     val g = b.toGeometry()
@@ -66,6 +85,11 @@ class MainActivity : AppCompatActivity() {
 
                     val a = GeometryEngine.areaGeodetic(g, AreaUnitAcres, GeodeticCurveType.GEODESIC)
                     Log.d(TAG, "Acres: $a")
+
+                    currTracks.graphics.clear()
+                    trackG?.geometry = g
+                    prevTracks.graphics.add(trackG)
+                    trackG = null
                 }
             }
         }
@@ -93,11 +117,13 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "MainActivity"
         private const val LocationPermissionRequest = 111
+        private const val PinDist = 5 // meters
+        private val SR = SpatialReferences.getWgs84()
+        private val emptyPtc = PointCollection(SR)
+        private val AreaUnitAcres = AreaUnit(AreaUnitId.ACRES)
         private val LinearUnitMeters = LinearUnit(LinearUnitId.METERS)
         private val AngularUnitMeters = AngularUnit(AngularUnitId.DEGREES)
-        private val AreaUnitAcres = AreaUnit(AreaUnitId.ACRES)
-        val PinDist = 5 // meters
-        val SR = SpatialReferences.getWgs84()
-        val emptyPtc = PointCollection(SR)
+        private val trackMarker = SimpleLineSymbol(SimpleLineSymbol.Style.SOLID, -0x01110, 5f)
+        private val locationMarker = SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, -0x10000, 10f)
     }
 }
