@@ -2,8 +2,10 @@ package com.github.jw3.exampleshaperecorder
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
+import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -23,13 +25,18 @@ class MainActivity : AppCompatActivity() {
 
     var trackG: Graphic? = null
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        val shapes = mutableListOf<String>()
+        val adapter = ArrayAdapter<String>(this, R.layout.simple_list_view_item, shapes)
+        listView.adapter = adapter
+
         askGpsPermission()
 
-        mapView.map = ArcGISMap(Basemap.Type.IMAGERY, 0.0, 0.0, 4)
+        mapView.map = ArcGISMap(Basemap.Type.IMAGERY, 42.0, 42.0, 4)
 
         val prevTracks = GraphicsOverlay()
         val currTracks = GraphicsOverlay()
@@ -54,7 +61,7 @@ class MainActivity : AppCompatActivity() {
                         )
 
                         Log.d(TAG, "moved ${geo.distance} ${geo.distanceUnit.displayName}")
-                        if (geo.distance > PinDist){
+                        if (geo.distance > PinDist) {
                             track.add(this)
                             trackG?.geometry = Polyline(track)
                         }
@@ -73,7 +80,7 @@ class MainActivity : AppCompatActivity() {
                 trackG = Graphic(Polyline(track), trackMarker)
                 currTracks.graphics.add(trackG)
             } else when (track) {
-                emptyPtc ->{
+                emptyPtc -> {
                     Log.d(TAG, "no points recorded")
                     currTracks.graphics.clear()
                     trackG = null
@@ -90,6 +97,9 @@ class MainActivity : AppCompatActivity() {
                     trackG?.geometry = g
                     prevTracks.graphics.add(trackG)
                     trackG = null
+
+                    shapes.add("Acres: $a")
+                    adapter.notifyDataSetChanged()
                 }
             }
         }
@@ -123,7 +133,7 @@ class MainActivity : AppCompatActivity() {
         private val AreaUnitAcres = AreaUnit(AreaUnitId.ACRES)
         private val LinearUnitMeters = LinearUnit(LinearUnitId.METERS)
         private val AngularUnitMeters = AngularUnit(AngularUnitId.DEGREES)
-        private val trackMarker = SimpleLineSymbol(SimpleLineSymbol.Style.SOLID, -0x01110, 5f)
+        private val trackMarker = SimpleLineSymbol(SimpleLineSymbol.Style.SOLID, Color.argb(.75f, 1f, 1f, 0f), 5f)
         private val locationMarker = SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, -0x10000, 10f)
     }
 }

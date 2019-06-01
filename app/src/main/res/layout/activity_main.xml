@@ -23,14 +23,20 @@
             android:layout_marginStart="8dp" android:visibility="invisible"/>
     <com.esri.arcgisruntime.mapping.view.MapView
             android:id="@+id/mapView"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginBottom="8dp"
-            app:layout_constraintBottom_toBottomOf="parent" android:layout_marginTop="8dp"
+            android:layout_width="779dp"
+            android:layout_height="1001dp"
+            android:layout_marginTop="8dp"
             app:layout_constraintTop_toTopOf="parent" app:layout_constraintEnd_toEndOf="parent"
             android:layout_marginEnd="8dp" app:layout_constraintStart_toStartOf="parent"
-            android:layout_marginStart="8dp"/>
-
+            android:layout_marginStart="8dp" app:layout_constraintHorizontal_bias="0.0"
+            android:layout_marginBottom="8dp" app:layout_constraintBottom_toTopOf="@+id/listView"/>
+    <ListView
+            android:layout_width="702dp"
+            android:layout_height="96dp"
+            android:layout_marginEnd="8dp" app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" android:layout_marginStart="8dp"
+            android:id="@+id/listView" android:layout_marginBottom="8dp"
+            app:layout_constraintBottom_toBottomOf="parent" android:backgroundTint="#009688"/>
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
